@@ -1,7 +1,7 @@
 import fs from 'fs';
 import meow from 'meow';
 
-import { compile } from '@/ccjs';
+import { compile } from '../ccjs';
 
 const cli = meow(
   `

@@ -2,16 +2,24 @@ type Token =
   | {
       kind: 'reserved';
       str: string;
+      pos: number;
     }
   | {
       kind: 'num';
       str: string;
+      pos: number;
       val: number;
     };
 
 type TokenKind = Token['kind'];
 
+let userInput = '';
 const tokens: Token[] = [];
+
+function errorAt(pos: number, fmt: string, ...args: unknown[]) {
+  console.error(userInput);
+  console.error(`${' '.repeat(pos)}^ ${fmt}`, ...args);
+}
 
 function strtol(str: string): [number, string] {
   const n = parseInt(str);
@@ -47,7 +55,7 @@ function expect(op: string) {
   const token = tokens[0];
 
   if (token.kind !== 'reserved' || token.str[0] !== op) {
-    console.error('could not find %s', op);
+    errorAt(token.pos, 'could not find %s', op);
     process.exit(1);
   }
 
@@ -62,7 +70,7 @@ function expectNumber(): number {
   const token = tokens[0];
 
   if (token.kind !== 'num') {
-    console.error('not a number');
+    errorAt(token.pos, 'not a number');
     process.exit(1);
   }
 
@@ -73,29 +81,32 @@ function expectNumber(): number {
 
 function tokenize(src: string) {
   tokens.length = 0;
+  userInput = src;
+  let cur = src;
 
-  while (src) {
-    const c = src[0];
+  while (cur) {
+    const pos = userInput.length - cur.length;
+    const c = cur[0];
 
     if (!c.trim()) {
-      src = src.slice(1);
+      cur = cur.slice(1);
       continue;
     }
 
     if (c === '+' || c === '-') {
-      src = src.slice(1);
-      tokens.push({ kind: 'reserved', str: c });
+      cur = cur.slice(1);
+      tokens.push({ kind: 'reserved', str: c, pos });
       continue;
     }
 
-    if (!isNaN(parseInt(src))) {
+    if (!isNaN(parseInt(cur))) {
       let val = 0;
-      [val, src] = strtol(src);
-      tokens.push({ kind: 'num', str: val.toString(), val });
+      [val, cur] = strtol(cur);
+      tokens.push({ kind: 'num', str: val.toString(), pos, val });
       continue;
     }
 
-    console.error('failed to tokenize');
+    errorAt(pos, 'failed to tokenize');
     process.exit(1);
   }
 }
@@ -128,7 +139,7 @@ export function compile(src: Buffer | string) {
         }
       }
       default: {
-        console.error('unexpected token: %s, %s', token.kind, token.str);
+        errorAt(token.pos, 'unexpected token: %s, %s', token.kind, token.str);
         process.exit(1);
       }
     }

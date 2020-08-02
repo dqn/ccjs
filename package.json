@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "up": "docker run --rm -it -w /var/lib/ccjs -v `pwd`:/var/lib/ccjs node:14.7.0-stretch bash"
   },
   "devDependencies": {
     "@types/node": "^14.0.27",

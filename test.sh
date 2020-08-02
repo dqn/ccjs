@@ -22,4 +22,4 @@ assert 42 42
 
 echo OK
 
-rm -f tmp*
+rm tmp tmp.s

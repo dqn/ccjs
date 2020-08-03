@@ -1,5 +1,9 @@
 type Token =
   | {
+      kind: 'eof';
+      pos: -1;
+    }
+  | {
       kind: 'reserved';
       str: string;
       pos: number;
@@ -93,7 +97,7 @@ function tokenize(src: string) {
       continue;
     }
 
-    if (c === '+' || c === '-') {
+    if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
       cur = cur.slice(1);
       tokens.push({ kind: 'reserved', str: c, pos });
       continue;
@@ -109,6 +113,102 @@ function tokenize(src: string) {
     errorAt(pos, 'failed to tokenize');
     process.exit(1);
   }
+
+  tokens.push({ kind: 'eof', pos: -1 });
+}
+
+type AstNode =
+  | {
+      kind: 'add' | 'sub' | 'mul' | 'div';
+      lhs: AstNode;
+      rhs: AstNode;
+    }
+  | {
+      kind: 'num';
+      val: number;
+    };
+
+type AstNodeKind = AstNode['kind'];
+
+// expr    = mul ("+" mul | "-" mul)*
+// mul     = primary ("*" primary | "/" primary)*
+// primary = num | "(" expr ")"
+
+function primary(): AstNode {
+  if (consume('(')) {
+    const node = expr();
+    expect(')');
+    return node;
+  }
+
+  return { kind: 'num', val: expectNumber() };
+}
+
+function mul(): AstNode {
+  let node = primary();
+
+  while (true) {
+    if (consume('*')) {
+      node = { kind: 'mul', lhs: node, rhs: primary() };
+    } else if (consume('/')) {
+      node = { kind: 'div', lhs: node, rhs: primary() };
+    } else {
+      return node;
+    }
+  }
+}
+
+function expr(): AstNode {
+  let node = mul();
+
+  while (true) {
+    if (consume('+')) {
+      node = { kind: 'add', lhs: node, rhs: mul() };
+    } else if (consume('-')) {
+      node = { kind: 'sub', lhs: node, rhs: mul() };
+    } else {
+      return node;
+    }
+  }
+}
+
+function gen(node: AstNode) {
+  if (node.kind === 'num') {
+    console.log('  push %d', node.val);
+    return;
+  }
+
+  gen(node.lhs);
+  gen(node.rhs);
+
+  console.log('  pop rdi');
+  console.log('  pop rax');
+
+  switch (node.kind) {
+    case 'add': {
+      console.log('  add rax, rdi');
+      break;
+    }
+    case 'sub': {
+      console.log('  sub rax, rdi');
+      break;
+    }
+    case 'mul': {
+      console.log('  imul rax, rdi');
+      break;
+    }
+    case 'div': {
+      console.log('  cqo');
+      console.log('  idiv rdi');
+      break;
+    }
+    default: {
+      console.error('unexpected node kind: %s', node.kind);
+      process.exit(1);
+    }
+  }
+
+  console.log('  push rax');
 }
 
 export function compile(src: Buffer | string) {
@@ -118,32 +218,9 @@ export function compile(src: Buffer | string) {
   console.log('.globl main');
   console.log('main:');
 
-  console.log('  mov rax, %d', expectNumber());
+  const node = expr();
+  gen(node);
 
-  while (tokens.length) {
-    const token = tokens[0];
-
-    switch (token.kind) {
-      case 'reserved': {
-        switch (token.str) {
-          case '+': {
-            consume('+');
-            console.log('  add rax, %d', expectNumber());
-            continue;
-          }
-          case '-': {
-            consume('-');
-            console.log('  sub rax, %d', expectNumber());
-            continue;
-          }
-        }
-      }
-      default: {
-        errorAt(token.pos, 'unexpected token: %s, %s', token.kind, token.str);
-        process.exit(1);
-      }
-    }
-  }
-
+  console.log('  pop rax');
   console.log('  ret');
 }

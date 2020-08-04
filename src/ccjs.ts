@@ -91,13 +91,20 @@ function tokenize(src: string) {
   while (cur) {
     const pos = userInput.length - cur.length;
     const c = cur[0];
+    const s = cur.slice(0, 2);
 
     if (!c.trim()) {
       cur = cur.slice(1);
       continue;
     }
 
-    if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
+    if (['==', '!=', '>=', '<='].includes(s)) {
+      cur = cur.slice(2);
+      tokens.push({ kind: 'reserved', str: s, pos });
+      continue;
+    }
+
+    if (['+', '-', '*', '/', '(', ')', '>', '<'].includes(c)) {
       cur = cur.slice(1);
       tokens.push({ kind: 'reserved', str: c, pos });
       continue;
@@ -119,7 +126,7 @@ function tokenize(src: string) {
 
 type AstNode =
   | {
-      kind: 'add' | 'sub' | 'mul' | 'div';
+      kind: 'add' | 'sub' | 'mul' | 'div' | 'equ' | 'neq' | 'lss' | 'leq';
       lhs: AstNode;
       rhs: AstNode;
     }
@@ -130,10 +137,13 @@ type AstNode =
 
 type AstNodeKind = AstNode['kind'];
 
-// expr    = mul ("+" mul | "-" mul)*
-// mul     = unary ("*" unary | "/" unary)*
-// unary   = ("+" | "-")? primary
-// primary = num | "(" expr ")"
+// expr       = equality
+// equality   = relational ("==" relational | "!=" relational)*
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+// add        = mul ("+" mul | "-" mul)*
+// mul        = unary ("*" unary | "/" unary)*
+// unary      = ("+" | "-")? primary
+// primary    = num | "(" expr ")"
 
 function primary(): AstNode {
   if (consume('(')) {
@@ -169,7 +179,7 @@ function mul(): AstNode {
   }
 }
 
-function expr(): AstNode {
+function add(): AstNode {
   let node = mul();
 
   while (true) {
@@ -181,6 +191,42 @@ function expr(): AstNode {
       return node;
     }
   }
+}
+
+function relational(): AstNode {
+  let node = add();
+
+  while (true) {
+    if (consume('<')) {
+      node = { kind: 'lss', lhs: node, rhs: add() };
+    } else if (consume('<=')) {
+      node = { kind: 'leq', lhs: node, rhs: add() };
+    } else if (consume('>')) {
+      node = { kind: 'lss', lhs: add(), rhs: node };
+    } else if (consume('>=')) {
+      node = { kind: 'leq', lhs: add(), rhs: node };
+    } else {
+      return node;
+    }
+  }
+}
+
+function equality(): AstNode {
+  let node = relational();
+
+  while (true) {
+    if (consume('==')) {
+      node = { kind: 'equ', lhs: node, rhs: relational() };
+    } else if (consume('!=')) {
+      node = { kind: 'neq', lhs: node, rhs: relational() };
+    } else {
+      return node;
+    }
+  }
+}
+
+function expr(): AstNode {
+  return equality();
 }
 
 function gen(node: AstNode) {
@@ -211,6 +257,30 @@ function gen(node: AstNode) {
     case 'div': {
       console.log('  cqo');
       console.log('  idiv rdi');
+      break;
+    }
+    case 'equ': {
+      console.log('  cmp rax, rdi');
+      console.log('  sete al');
+      console.log('  movzb rax, al');
+      break;
+    }
+    case 'neq': {
+      console.log('  cmp rax, rdi');
+      console.log('  setne al');
+      console.log('  movzb rax, al');
+      break;
+    }
+    case 'lss': {
+      console.log('  cmp rax, rdi');
+      console.log('  setl al');
+      console.log('  movzb rax, al');
+      break;
+    }
+    case 'leq': {
+      console.log('  cmp rax, rdi');
+      console.log('  setle al');
+      console.log('  movzb rax, al');
       break;
     }
     default: {

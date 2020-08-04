@@ -42,7 +42,7 @@ function consume(op: string): boolean {
 
   const token = tokens[0];
 
-  if (token.kind !== 'reserved' || token.str[0] !== op) {
+  if (token.kind !== 'reserved' || token.str !== op) {
     return false;
   }
 
@@ -58,7 +58,7 @@ function expect(op: string) {
 
   const token = tokens[0];
 
-  if (token.kind !== 'reserved' || token.str[0] !== op) {
+  if (token.kind !== 'reserved' || token.str !== op) {
     errorAt(token.pos, 'could not find %s', op);
     process.exit(1);
   }
@@ -131,7 +131,8 @@ type AstNode =
 type AstNodeKind = AstNode['kind'];
 
 // expr    = mul ("+" mul | "-" mul)*
-// mul     = primary ("*" primary | "/" primary)*
+// mul     = unary ("*" unary | "/" unary)*
+// unary   = ("+" | "-")? primary
 // primary = num | "(" expr ")"
 
 function primary(): AstNode {
@@ -144,14 +145,24 @@ function primary(): AstNode {
   return { kind: 'num', val: expectNumber() };
 }
 
+function unary(): AstNode {
+  if (consume('+')) {
+    return primary();
+  }
+  if (consume('-')) {
+    return { kind: 'sub', lhs: { kind: 'num', val: 0 }, rhs: primary() };
+  }
+  return primary();
+}
+
 function mul(): AstNode {
-  let node = primary();
+  let node = unary();
 
   while (true) {
     if (consume('*')) {
-      node = { kind: 'mul', lhs: node, rhs: primary() };
+      node = { kind: 'mul', lhs: node, rhs: unary() };
     } else if (consume('/')) {
-      node = { kind: 'div', lhs: node, rhs: primary() };
+      node = { kind: 'div', lhs: node, rhs: unary() };
     } else {
       return node;
     }

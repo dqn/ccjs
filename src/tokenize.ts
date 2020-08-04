@@ -29,28 +29,27 @@ function strtol(str: string): [number, string] {
 
 export function tokenize(src: string): Token[] {
   const tokens: Token[] = [];
-  const userInput = src;
   let cur = src;
 
   while (cur) {
-    const pos = userInput.length - cur.length;
-    const c = cur[0];
-    const s = cur.slice(0, 2);
+    const pos = src.length - cur.length;
+    const s1 = cur.slice(0, 1);
+    const s2 = cur.slice(0, 2);
 
-    if (!c.trim()) {
+    if (!s1.trim()) {
       cur = cur.slice(1);
       continue;
     }
 
-    if (['==', '!=', '>=', '<='].includes(s)) {
+    if (['==', '!=', '>=', '<='].includes(s2)) {
       cur = cur.slice(2);
-      tokens.push({ kind: 'reserved', str: s, pos });
+      tokens.push({ kind: 'reserved', str: s2, pos });
       continue;
     }
 
-    if (['+', '-', '*', '/', '(', ')', '>', '<'].includes(c)) {
+    if (['+', '-', '*', '/', '(', ')', '>', '<'].includes(s1)) {
       cur = cur.slice(1);
-      tokens.push({ kind: 'reserved', str: c, pos });
+      tokens.push({ kind: 'reserved', str: s1, pos });
       continue;
     }
 

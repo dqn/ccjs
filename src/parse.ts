@@ -16,6 +16,10 @@ export type AstNode =
       val: number;
     };
 
+type LVar = {
+  [name: string]: { offset: number };
+};
+
 // program    = stmt*
 // stmt       = expr ";"
 // expr       = assign
@@ -28,6 +32,8 @@ export type AstNode =
 // primary    = num | ident | "(" expr ")"
 
 export function parse(tokens: Token[]): AstNode[] {
+  const locals: LVar = {};
+
   const consume = (op: string): boolean => {
     if (!tokens.length) {
       throw Error('there are no tokens');
@@ -51,7 +57,7 @@ export function parse(tokens: Token[]): AstNode[] {
 
     const token = tokens[0];
 
-    if ((token.kind !== 'reserved' && token.kind !== 'ident') || token.str !== op) {
+    if (token.kind !== 'reserved' || token.str !== op) {
       errorAt(token.pos, 'could not find %s', op);
       process.exit(1);
     }
@@ -84,9 +90,16 @@ export function parse(tokens: Token[]): AstNode[] {
     }
 
     if (tokens[0].kind === 'ident') {
-      const offset = (tokens[0].str.charCodeAt(0) - 'a'.charCodeAt(0) + 1) * 8;
+      const { str } = tokens[0];
+
+      if (!locals[str]) {
+        const offset = (Object.keys(locals).length + 1) * 8;
+        locals[str] = { offset };
+      }
+
       tokens.shift();
-      return { kind: 'lvar', offset };
+
+      return { kind: 'lvar', offset: locals[str].offset };
     }
 
     return { kind: 'num', val: expectNumber() };

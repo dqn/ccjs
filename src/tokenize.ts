@@ -58,9 +58,15 @@ export function tokenize(src: string): Token[] {
       continue;
     }
 
-    if (s1 >= 'a' && s1 <= 'z') {
-      cur = cur.slice(1);
-      tokens.push({ kind: 'ident', str: s1, pos });
+    if (/[a-z_]/.test(s1)) {
+      let str = '';
+
+      while (/\w/.test(cur[0])) {
+        str += cur.slice(0, 1);
+        cur = cur.slice(1);
+      }
+
+      tokens.push({ kind: 'ident', str, pos });
       continue;
     }
 

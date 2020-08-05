@@ -34,6 +34,7 @@ assert 1 '1-1<=2-2;'
 assert 1 'a=1;a;'
 assert 111 'b=123;b=b-12;'
 assert 20 'c=30;b=10;c-b;'
+assert 6 'foo=1;bar=2+3;foo+bar;'
 
 echo OK
 

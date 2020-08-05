@@ -1,9 +1,39 @@
 import { AstNode } from './parse';
 
+function genLval(node: AstNode) {
+  if (node.kind !== 'lvar') {
+    console.error('not left value');
+    process.exit(1);
+  }
+
+  console.log('  mov rax, rbp');
+  console.log('  sub rax, %d', node.offset);
+  console.log('  push rax');
+}
+
 function gen(node: AstNode) {
-  if (node.kind === 'num') {
-    console.log('  push %d', node.val);
-    return;
+  switch (node.kind) {
+    case 'num': {
+      console.log('  push %d', node.val);
+      return;
+    }
+    case 'lvar': {
+      genLval(node);
+      console.log('  pop rax');
+      console.log('  mov rax, [rax]');
+      console.log('  push rax');
+      return;
+    }
+    case 'assign': {
+      genLval(node.lhs);
+      gen(node.rhs);
+
+      console.log('  pop rdi');
+      console.log('  pop rax');
+      console.log('  mov [rax], rdi');
+      console.log('  push rdi');
+      return;
+    }
   }
 
   gen(node.lhs);
@@ -63,13 +93,23 @@ function gen(node: AstNode) {
   console.log('  push rax');
 }
 
-export function generateCode(node: AstNode) {
+export function generateCode(nodes: AstNode[]) {
   console.log('.intel_syntax noprefix');
   console.log('.globl main');
   console.log('main:');
 
-  gen(node);
+  // allocate space for 26 variables.
+  console.log('  push rbp');
+  console.log('  mov rbp, rsp');
+  console.log('  sub rsp, 208');
 
-  console.log('  pop rax');
+  nodes.forEach((node) => {
+    gen(node);
+
+    console.log('  pop rax');
+  });
+
+  console.log('  mov rsp, rbp');
+  console.log('  pop rbp');
   console.log('  ret');
 }

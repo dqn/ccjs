@@ -3,24 +3,31 @@ import { Token } from './tokenize';
 
 export type AstNode =
   | {
-      kind: 'add' | 'sub' | 'mul' | 'div' | 'equ' | 'neq' | 'lss' | 'leq';
+      kind: 'add' | 'sub' | 'mul' | 'div' | 'equ' | 'neq' | 'lss' | 'leq' | 'assign';
       lhs: AstNode;
       rhs: AstNode;
+    }
+  | {
+      kind: 'lvar';
+      offset: number;
     }
   | {
       kind: 'num';
       val: number;
     };
 
-// expr       = equality
+// program    = stmt*
+// stmt       = expr ";"
+// expr       = assign
+// assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | "(" expr ")"
+// primary    = num | ident | "(" expr ")"
 
-export function parse(tokens: Token[]): AstNode {
+export function parse(tokens: Token[]): AstNode[] {
   const consume = (op: string): boolean => {
     if (!tokens.length) {
       throw Error('there are no tokens');
@@ -44,7 +51,7 @@ export function parse(tokens: Token[]): AstNode {
 
     const token = tokens[0];
 
-    if (token.kind !== 'reserved' || token.str !== op) {
+    if ((token.kind !== 'reserved' && token.kind !== 'ident') || token.str !== op) {
       errorAt(token.pos, 'could not find %s', op);
       process.exit(1);
     }
@@ -74,6 +81,12 @@ export function parse(tokens: Token[]): AstNode {
       const node = expr();
       expect(')');
       return node;
+    }
+
+    if (tokens[0].kind === 'ident') {
+      const offset = (tokens[0].str.charCodeAt(0) - 'a'.charCodeAt(0) + 1) * 8;
+      tokens.shift();
+      return { kind: 'lvar', offset };
     }
 
     return { kind: 'num', val: expectNumber() };
@@ -149,9 +162,33 @@ export function parse(tokens: Token[]): AstNode {
     }
   };
 
-  const expr = (): AstNode => {
-    return equality();
+  const assign = (): AstNode => {
+    const node = equality();
+
+    if (consume('=')) {
+      return { kind: 'assign', lhs: node, rhs: assign() };
+    } else {
+      return node;
+    }
   };
 
-  return expr();
+  const expr = (): AstNode => {
+    return assign();
+  };
+
+  const stmt = (): AstNode => {
+    const node = expr();
+    expect(';');
+    return node;
+  };
+
+  const program = (): AstNode[] => {
+    const nodes: AstNode[] = [];
+    while (tokens[0].kind !== 'eof') {
+      nodes.push(stmt());
+    }
+    return nodes;
+  };
+
+  return program();
 }

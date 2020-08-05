@@ -8,6 +8,6 @@ export function compile(src: Buffer | string) {
   setSrc(src);
 
   const tokens = tokenize(src);
-  const node = parse(tokens);
-  generateCode(node);
+  const nodes = parse(tokens);
+  generateCode(nodes);
 }

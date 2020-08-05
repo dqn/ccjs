@@ -11,6 +11,11 @@ export type Token =
       pos: number;
     }
   | {
+      kind: 'ident';
+      str: string;
+      pos: number;
+    }
+  | {
       kind: 'num';
       str: string;
       pos: number;
@@ -47,9 +52,15 @@ export function tokenize(src: string): Token[] {
       continue;
     }
 
-    if (['+', '-', '*', '/', '(', ')', '>', '<'].includes(s1)) {
+    if (['+', '-', '*', '/', '(', ')', '>', '<', '=', ';'].includes(s1)) {
       cur = cur.slice(1);
       tokens.push({ kind: 'reserved', str: s1, pos });
+      continue;
+    }
+
+    if (s1 >= 'a' && s1 <= 'z') {
+      cur = cur.slice(1);
+      tokens.push({ kind: 'ident', str: s1, pos });
       continue;
     }
 

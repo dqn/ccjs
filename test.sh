@@ -42,6 +42,8 @@ assert 1 'if (1 == 1) 2; 1;'
 assert 2 'if (1) return 2; 1;'
 assert 2 'if (1) 2; else 1;'
 assert 1 'if (0 == 1) 2; else 1;'
+assert 0 'a=3;while(a)a=a-1;a;'
+assert 2 'a=3;while(a)return 2;a;'
 
 echo OK
 

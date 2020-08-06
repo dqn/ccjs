@@ -23,6 +23,10 @@ export type Token =
       pos: number;
     }
   | {
+      kind: 'while';
+      pos: number;
+    }
+  | {
       kind: 'ident';
       str: string;
       pos: number;
@@ -90,6 +94,11 @@ export function tokenize(src: string): Token[] {
 
     if (consume('else')) {
       tokens.push({ kind: 'else', pos });
+      continue;
+    }
+
+    if (consume('while')) {
+      tokens.push({ kind: 'while', pos });
       continue;
     }
 

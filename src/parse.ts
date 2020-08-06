@@ -18,6 +18,11 @@ export type AstNode =
       caseFalse?: AstNode;
     }
   | {
+      kind: 'while';
+      cond: AstNode;
+      whileTrue: AstNode;
+    }
+  | {
       kind: 'lvar';
       offset: number;
     }
@@ -34,6 +39,7 @@ type LVar = {
 // stmt       = expr ";"
 //              | "return" expr ";"
 //              | "if" "(" expr ")" stmt ("else" stmt)?
+//              | "while" "(" expr ")" stmt
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -234,6 +240,16 @@ export function parse(tokens: Token[]): AstNode[] {
       if (consumeKind('else')) {
         node.caseFalse = stmt();
       }
+
+      return node;
+    }
+
+    if (consumeKind('while')) {
+      expect('(');
+      const cond = expr();
+      expect(')');
+
+      const node: AstNode = { kind: 'while', cond, whileTrue: stmt() };
 
       return node;
     }

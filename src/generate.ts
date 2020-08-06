@@ -70,6 +70,19 @@ export function generateCode(nodes: AstNode[]) {
         }
         return;
       }
+      case 'while': {
+        const lbegin = newLabel('Lbegin');
+        const lend = newLabel('Lend');
+        console.log(lbegin + ':');
+        gen(node.cond);
+        console.log('  pop rax');
+        console.log('  cmp rax, 0');
+        console.log('  je ' + lend);
+        gen(node.whileTrue);
+        console.log('  jmp ' + lbegin);
+        console.log(lend + ':');
+        return;
+      }
     }
 
     gen(node.lhs);

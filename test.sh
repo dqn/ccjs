@@ -35,6 +35,9 @@ assert 1 'a=1;a;'
 assert 111 'b=123;b=b-12;'
 assert 20 'c=30;b=10;c-b;'
 assert 6 'foo=1;bar=2+3;foo+bar;'
+assert 10 'return 10;'
+assert 7 'aa=4;bb=3;return aa+bb;'
+assert 2 'return 2;return 1;'
 
 echo OK
 

@@ -8,6 +8,10 @@ export type AstNode =
       rhs: AstNode;
     }
   | {
+      kind: 'return';
+      lhs: AstNode;
+    }
+  | {
       kind: 'lvar';
       offset: number;
     }
@@ -21,7 +25,7 @@ type LVar = {
 };
 
 // program    = stmt*
-// stmt       = expr ";"
+// stmt       = "return"? expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -42,6 +46,22 @@ export function parse(tokens: Token[]): AstNode[] {
     const token = tokens[0];
 
     if (token.kind !== 'reserved' || token.str !== op) {
+      return false;
+    }
+
+    tokens.shift();
+
+    return true;
+  };
+
+  const consumeKind = (kind: string): boolean => {
+    if (!tokens.length) {
+      throw Error('there are no tokens');
+    }
+
+    const token = tokens[0];
+
+    if (token.kind !== kind) {
       return false;
     }
 
@@ -190,7 +210,7 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const stmt = (): AstNode => {
-    const node = expr();
+    const node: AstNode = consumeKind('return') ? { kind: 'return', lhs: expr() } : expr();
     expect(';');
     return node;
   };

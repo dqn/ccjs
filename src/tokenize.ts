@@ -11,13 +11,16 @@ export type Token =
       pos: number;
     }
   | {
+      kind: 'return';
+      pos: number;
+    }
+  | {
       kind: 'ident';
       str: string;
       pos: number;
     }
   | {
       kind: 'num';
-      str: string;
       pos: number;
       val: number;
     };
@@ -35,6 +38,15 @@ function strtol(str: string): [number, string] {
 export function tokenize(src: string): Token[] {
   const tokens: Token[] = [];
   let cur = src;
+
+  const consume = (str: string): boolean => {
+    if (cur.slice(0, str.length) === str && !/\w/.test(cur[str.length])) {
+      cur = cur.slice(str.length);
+      return true;
+    }
+
+    return false;
+  };
 
   while (cur) {
     const pos = src.length - cur.length;
@@ -58,6 +70,11 @@ export function tokenize(src: string): Token[] {
       continue;
     }
 
+    if (consume('return')) {
+      tokens.push({ kind: 'return', pos });
+      continue;
+    }
+
     if (/[a-z_]/.test(s1)) {
       let str = '';
 
@@ -73,7 +90,7 @@ export function tokenize(src: string): Token[] {
     if (!isNaN(parseInt(cur))) {
       let val = 0;
       [val, cur] = strtol(cur);
-      tokens.push({ kind: 'num', str: val.toString(), pos, val });
+      tokens.push({ kind: 'num', pos, val });
       continue;
     }
 

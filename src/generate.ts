@@ -34,6 +34,14 @@ function gen(node: AstNode) {
       console.log('  push rdi');
       return;
     }
+    case 'return': {
+      gen(node.lhs);
+      console.log('  pop rax');
+      console.log('  mov rsp, rbp');
+      console.log('  pop rbp');
+      console.log('  ret');
+      return;
+    }
   }
 
   gen(node.lhs);

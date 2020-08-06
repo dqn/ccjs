@@ -30,6 +30,10 @@ export type AstNode =
       whileTrue: AstNode;
     }
   | {
+      kind: 'block';
+      stmts: AstNode[];
+    }
+  | {
       kind: 'lvar';
       offset: number;
     }
@@ -44,6 +48,7 @@ type LVar = {
 
 // program    = stmt*
 // stmt       = expr ";"
+//              | "{" stmt* "}"
 //              | "return" expr ";"
 //              | "if" "(" expr ")" stmt ("else" stmt)?
 //              | "while" "(" expr ")" stmt
@@ -232,6 +237,14 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const stmt = (): AstNode => {
+    if (consume('{')) {
+      const node: AstNode = { kind: 'block', stmts: [] };
+      while (!consume('}')) {
+        node.stmts.push(stmt());
+      }
+      return node;
+    }
+
     if (consumeKind('return')) {
       const node: AstNode = { kind: 'return', lhs: expr() };
       expect(';');

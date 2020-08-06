@@ -46,6 +46,8 @@ assert 0 'a=3;while(a)a=a-1;a;'
 assert 2 'a=3;while(a)return 2;a;'
 assert 7 'a=10;for(i=0;i<3;i=i+1)a=a-1;a;'
 assert 3 'a=0;for(;a<3;)a=a+1;a;'
+assert 1 'for (i=0;i<10;i=i+1) { if (i == 5) { return 1; } } return 0;'
+assert 14 'a=0; for (;;) { a = a+2; if (a > 12) return a; }'
 
 echo OK
 

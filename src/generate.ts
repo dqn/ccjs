@@ -40,6 +40,13 @@ export function generateCode(nodes: AstNode[]) {
         console.log('  push rdi');
         return;
       }
+      case 'block': {
+        node.stmts.forEach((stmt) => {
+          gen(stmt);
+          console.log('  pop rax');
+        });
+        return;
+      }
       case 'return': {
         gen(node.lhs);
         console.log('  pop rax');

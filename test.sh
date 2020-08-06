@@ -44,6 +44,8 @@ assert 2 'if (1) 2; else 1;'
 assert 1 'if (0 == 1) 2; else 1;'
 assert 0 'a=3;while(a)a=a-1;a;'
 assert 2 'a=3;while(a)return 2;a;'
+assert 7 'a=10;for(i=0;i<3;i=i+1)a=a-1;a;'
+assert 3 'a=0;for(;a<3;)a=a+1;a;'
 
 echo OK
 

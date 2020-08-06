@@ -83,6 +83,27 @@ export function generateCode(nodes: AstNode[]) {
         console.log(lend + ':');
         return;
       }
+      case 'for': {
+        const lbegin = newLabel('Lbegin');
+        const lend = newLabel('Lend');
+        if (node.init) {
+          gen(node.init);
+        }
+        console.log(lbegin + ':');
+        if (node.cond) {
+          gen(node.cond);
+          console.log('  pop rax');
+          console.log('  cmp rax, 0');
+          console.log('  je ' + lend);
+        }
+        gen(node.whileTrue);
+        if (node.after) {
+          gen(node.after);
+        }
+        console.log('  jmp ' + lbegin);
+        console.log(lend + ':');
+        return;
+      }
     }
 
     gen(node.lhs);

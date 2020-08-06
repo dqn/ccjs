@@ -23,6 +23,13 @@ export type AstNode =
       whileTrue: AstNode;
     }
   | {
+      kind: 'for';
+      init?: AstNode;
+      cond?: AstNode;
+      after?: AstNode;
+      whileTrue: AstNode;
+    }
+  | {
       kind: 'lvar';
       offset: number;
     }
@@ -40,6 +47,7 @@ type LVar = {
 //              | "return" expr ";"
 //              | "if" "(" expr ")" stmt ("else" stmt)?
 //              | "while" "(" expr ")" stmt
+//              | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -250,6 +258,27 @@ export function parse(tokens: Token[]): AstNode[] {
       expect(')');
 
       const node: AstNode = { kind: 'while', cond, whileTrue: stmt() };
+
+      return node;
+    }
+
+    if (consumeKind('for')) {
+      const node: AstNode = { kind: 'for', whileTrue: null! };
+      expect('(');
+      if (!consume(';')) {
+        node.init = expr();
+        expect(';');
+      }
+      if (!consume(';')) {
+        node.cond = expr();
+        expect(';');
+      }
+      if (!consume(')')) {
+        node.after = expr();
+        expect(')');
+      }
+
+      node.whileTrue = stmt();
 
       return node;
     }

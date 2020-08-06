@@ -27,6 +27,10 @@ export type Token =
       pos: number;
     }
   | {
+      kind: 'for';
+      pos: number;
+    }
+  | {
       kind: 'ident';
       str: string;
       pos: number;
@@ -99,6 +103,11 @@ export function tokenize(src: string): Token[] {
 
     if (consume('while')) {
       tokens.push({ kind: 'while', pos });
+      continue;
+    }
+
+    if (consume('for')) {
+      tokens.push({ kind: 'for', pos });
       continue;
     }
 

@@ -38,6 +38,10 @@ assert 6 'foo=1;bar=2+3;foo+bar;'
 assert 10 'return 10;'
 assert 7 'aa=4;bb=3;return aa+bb;'
 assert 2 'return 2;return 1;'
+assert 1 'if (1 == 1) 2; 1;'
+assert 2 'if (1) return 2; 1;'
+assert 2 'if (1) 2; else 1;'
+assert 1 'if (0 == 1) 2; else 1;'
 
 echo OK
 

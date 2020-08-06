@@ -12,6 +12,12 @@ export type AstNode =
       lhs: AstNode;
     }
   | {
+      kind: 'if';
+      cond: AstNode;
+      caseTrue: AstNode;
+      caseFalse?: AstNode;
+    }
+  | {
       kind: 'lvar';
       offset: number;
     }
@@ -25,7 +31,9 @@ type LVar = {
 };
 
 // program    = stmt*
-// stmt       = "return"? expr ";"
+// stmt       = expr ";"
+//              | "return" expr ";"
+//              | "if" "(" expr ")" stmt ("else" stmt)?
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -210,7 +218,27 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const stmt = (): AstNode => {
-    const node: AstNode = consumeKind('return') ? { kind: 'return', lhs: expr() } : expr();
+    if (consumeKind('return')) {
+      const node: AstNode = { kind: 'return', lhs: expr() };
+      expect(';');
+      return node;
+    }
+
+    if (consumeKind('if')) {
+      expect('(');
+      const cond = expr();
+      expect(')');
+
+      const node: AstNode = { kind: 'if', cond, caseTrue: stmt() };
+
+      if (consumeKind('else')) {
+        node.caseFalse = stmt();
+      }
+
+      return node;
+    }
+
+    const node = expr();
     expect(';');
     return node;
   };

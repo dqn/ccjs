@@ -15,6 +15,14 @@ export type Token =
       pos: number;
     }
   | {
+      kind: 'if';
+      pos: number;
+    }
+  | {
+      kind: 'else';
+      pos: number;
+    }
+  | {
       kind: 'ident';
       str: string;
       pos: number;
@@ -72,6 +80,16 @@ export function tokenize(src: string): Token[] {
 
     if (consume('return')) {
       tokens.push({ kind: 'return', pos });
+      continue;
+    }
+
+    if (consume('if')) {
+      tokens.push({ kind: 'if', pos });
+      continue;
+    }
+
+    if (consume('else')) {
+      tokens.push({ kind: 'else', pos });
       continue;
     }
 

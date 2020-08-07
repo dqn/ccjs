@@ -50,6 +50,8 @@ assert 1 'main() {for (i=0;i<10;i=i+1) { if (i == 5) { return 1; } } return 0;}'
 assert 14 'main() {a=0; for (;;) { a = a+2; if (a > 12) return a; } }'
 assert 1 'main() {return 1;}'
 assert 1 'foo() { return 1;} main() {return 1;}'
+assert 42 'foo() { return 42;} main() {return foo();}'
+assert 52 'foo() { return 13;} bar() { return 4;} main() {return foo() * bar();}'
 
 echo OK
 

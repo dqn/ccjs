@@ -43,6 +43,10 @@ export type AstNode =
       stmts: AstNode[];
     }
   | {
+      kind: 'call';
+      label: string;
+    }
+  | {
       kind: 'lvar';
       offset: number;
     }
@@ -70,7 +74,7 @@ type LVar = {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | ident | "(" expr ")"
+// primary    = num | ident ("(" ")")? | "(" expr ")"
 
 export function parse(tokens: Token[]): AstNode[] {
   const locals: LVar = {};
@@ -146,15 +150,20 @@ export function parse(tokens: Token[]): AstNode[] {
       return node;
     }
 
-    if (tokens[0].kind === 'ident') {
-      const { str } = tokens[0];
+    const token = tokens[0];
+    if (token.kind === 'ident') {
+      const { str } = token;
+      tokens.shift();
+
+      if (consume('(')) {
+        expect(')');
+        return { kind: 'call', label: str };
+      }
 
       if (!locals[str]) {
         const offset = (Object.keys(locals).length + 1) * 8;
         locals[str] = { offset };
       }
-
-      tokens.shift();
 
       return { kind: 'lvar', offset: locals[str].offset };
     }

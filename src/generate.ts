@@ -40,6 +40,11 @@ export function generateCode(nodes: AstNode[]) {
         console.log('  push rdi');
         return;
       }
+      case 'call': {
+        console.log('  call ' + node.label);
+        console.log('  push rax');
+        return;
+      }
       case 'func': {
         // allocate space for 26 variables.
         console.log(node.label + ':');

@@ -3,7 +3,7 @@ import { AstNode } from './parse';
 export function generateCode(nodes: AstNode[]) {
   const newLabel = ((): ((str: string) => string) => {
     let labelCount = 0;
-    return (str: string) => str + labelCount++;
+    return (str) => str + labelCount++;
   })();
 
   const genLval = (node: AstNode) => {

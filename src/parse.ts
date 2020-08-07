@@ -8,6 +8,10 @@ export type AstNode =
       rhs: AstNode;
     }
   | {
+      kind: 'block';
+      stmts: AstNode[];
+    }
+  | {
       kind: 'return';
       lhs: AstNode;
     }

@@ -40,6 +40,23 @@ export function generateCode(nodes: AstNode[]) {
         console.log('  push rdi');
         return;
       }
+      case 'func': {
+        // allocate space for 26 variables.
+        console.log(node.label + ':');
+        console.log('  push rbp');
+        console.log('  mov rbp, rsp');
+        console.log('  sub rsp, 208');
+
+        node.stmts.forEach((stmt) => {
+          gen(stmt);
+          console.log('  pop rax');
+        });
+
+        console.log('  mov rsp, rbp');
+        console.log('  pop rbp');
+        console.log('  ret');
+        return;
+      }
       case 'block': {
         node.stmts.forEach((stmt) => {
           gen(stmt);
@@ -172,20 +189,8 @@ export function generateCode(nodes: AstNode[]) {
 
   console.log('.intel_syntax noprefix');
   console.log('.globl main');
-  console.log('main:');
-
-  // allocate space for 26 variables.
-  console.log('  push rbp');
-  console.log('  mov rbp, rsp');
-  console.log('  sub rsp, 208');
 
   nodes.forEach((node) => {
     gen(node);
-
-    console.log('  pop rax');
   });
-
-  console.log('  mov rsp, rbp');
-  console.log('  pop rbp');
-  console.log('  ret');
 }

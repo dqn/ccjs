@@ -8,6 +8,11 @@ export type AstNode =
       rhs: AstNode;
     }
   | {
+      kind: 'func';
+      label: string;
+      stmts: AstNode[];
+    }
+  | {
       kind: 'block';
       stmts: AstNode[];
     }
@@ -50,7 +55,8 @@ type LVar = {
   [name: string]: { offset: number };
 };
 
-// program    = stmt*
+// program    = func*
+// func       = ident "(" ")" "{" stmt* "}"
 // stmt       = expr ";"
 //              | "{" stmt* "}"
 //              | "return" expr ";"
@@ -305,10 +311,32 @@ export function parse(tokens: Token[]): AstNode[] {
     return node;
   };
 
+  const func = (): AstNode => {
+    const token = tokens[0];
+
+    if (token.kind !== 'ident') {
+      errorAt(token.pos, 'expect ident');
+      process.exit(1);
+    }
+    const label = token.str;
+    tokens.shift();
+
+    expect('(');
+    expect(')');
+    expect('{');
+
+    const stmts: AstNode[] = [];
+    while (!consume('}')) {
+      stmts.push(stmt());
+    }
+
+    return { kind: 'func', label, stmts };
+  };
+
   const program = (): AstNode[] => {
     const nodes: AstNode[] = [];
     while (tokens[0].kind !== 'eof') {
-      nodes.push(stmt());
+      nodes.push(func());
     }
     return nodes;
   };

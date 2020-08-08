@@ -54,6 +54,8 @@ assert 42 'foo() { return 42;} main() {return foo();}'
 assert 52 'foo() { return 13;} bar() { return 4;} main() {return foo() * bar();}'
 assert 42 'calc(x,y,z) { return x + y * z;} main() {return calc(12,6,5);}'
 assert 55 'fibo(x) { if (x < 2) { return x; } return fibo(x - 1) + fibo(x - 2); } main() { return fibo(10); }'
+assert 10 'main() { a = 10; return *&a; }'
+assert 2 'main() { a = 1; b = 2; return *(&a - 8); }'
 
 echo OK
 

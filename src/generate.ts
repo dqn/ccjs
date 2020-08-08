@@ -17,7 +17,7 @@ export function generateCode(nodes: AstNode[]) {
 
   const genLval = (node: AstNode) => {
     if (node.kind !== 'lvar') {
-      console.error('not left value');
+      console.error('not local variable');
       process.exit(1);
     }
 
@@ -47,6 +47,17 @@ export function generateCode(nodes: AstNode[]) {
         console.log('  pop rax');
         console.log('  mov [rax], rdi');
         console.log('  push rdi');
+        return;
+      }
+      case 'deref': {
+        gen(node.operand);
+        console.log('  pop rax');
+        console.log('  mov rax, [rax]');
+        console.log('  push rax');
+        return;
+      }
+      case 'addr': {
+        genLval(node.operand);
         return;
       }
       case 'call': {

@@ -8,6 +8,10 @@ export type AstNode =
       rhs: AstNode;
     }
   | {
+      kind: 'deref' | 'addr';
+      operand: AstNode;
+    }
+  | {
       kind: 'func';
       label: string;
       args: AstNode[];
@@ -75,7 +79,10 @@ type LVar = {
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
-// unary      = ("+" | "-")? primary
+// unary      = "+"? primary
+//              | "-"? primary
+//              | "*" unary
+//              | "&" unary
 // primary    = num | ident ( "(" (expr ("," expr)*)? ")" )? | "(" expr ")"
 
 export function parse(tokens: Token[]): AstNode[] {
@@ -189,6 +196,12 @@ export function parse(tokens: Token[]): AstNode[] {
     }
     if (consume('-')) {
       return { kind: 'sub', lhs: { kind: 'num', val: 0 }, rhs: primary() };
+    }
+    if (consume('*')) {
+      return { kind: 'deref', operand: unary() };
+    }
+    if (consume('&')) {
+      return { kind: 'addr', operand: unary() };
     }
     return primary();
   };

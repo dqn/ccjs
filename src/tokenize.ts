@@ -80,7 +80,7 @@ export function tokenize(src: string): Token[] {
       continue;
     }
 
-    if (['+', '-', '*', '/', '(', ')', '>', '<', '=', ';', '{', '}', ','].includes(s1)) {
+    if (['+', '-', '*', '/', '(', ')', '>', '<', '=', ';', '{', '}', ',', '*', '&'].includes(s1)) {
       cur = cur.slice(1);
       tokens.push({ kind: 'reserved', str: s1, pos });
       continue;

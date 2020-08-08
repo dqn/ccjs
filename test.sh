@@ -52,6 +52,7 @@ assert 1 'main() {return 1;}'
 assert 1 'foo() { return 1;} main() {return 1;}'
 assert 42 'foo() { return 42;} main() {return foo();}'
 assert 52 'foo() { return 13;} bar() { return 4;} main() {return foo() * bar();}'
+assert 42 'calc(x,y,z) { return x + y * z;} main() {return calc(12,6,5);}'
 
 echo OK
 

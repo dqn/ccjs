@@ -1,5 +1,14 @@
 import { AstNode } from './parse';
 
+function argRegisters(i: number): string {
+  if (i > 5) {
+    throw new Error('up to 6 arguments can be used');
+  }
+
+  const registers = ['rdi', 'rsi', 'rdx', 'rcx', 'r8', 'r9'];
+  return registers[i];
+}
+
 export function generateCode(nodes: AstNode[]) {
   const newLabel = ((): ((str: string) => string) => {
     let labelCount = 0;
@@ -41,7 +50,13 @@ export function generateCode(nodes: AstNode[]) {
         return;
       }
       case 'call': {
-        console.log('  call ' + node.label);
+        node.args.forEach((arg, i) => {
+          gen(arg);
+          console.log('  pop rax');
+          console.log('  mov %s, rax', argRegisters(i));
+        });
+
+        console.log('  call %s', node.label);
         console.log('  push rax');
         return;
       }
@@ -51,6 +66,12 @@ export function generateCode(nodes: AstNode[]) {
         console.log('  push rbp');
         console.log('  mov rbp, rsp');
         console.log('  sub rsp, 208');
+
+        node.args.forEach((arg, i) => {
+          genLval(arg);
+          console.log('  pop rax');
+          console.log('  mov [rax], %s', argRegisters(i));
+        });
 
         node.stmts.forEach((stmt) => {
           gen(stmt);
@@ -85,15 +106,15 @@ export function generateCode(nodes: AstNode[]) {
         if (node.caseFalse) {
           const lelse = newLabel('.Lelse');
           const lend = newLabel('.Lend');
-          console.log('  je ' + lelse);
+          console.log('  je %s', lelse);
           gen(node.caseTrue);
-          console.log('  jmp ' + lend);
+          console.log('  jmp %s', lend);
           console.log(lelse + ':');
           gen(node.caseFalse);
           console.log(lend + ':');
         } else {
           const lend = newLabel('.Lend');
-          console.log('  je ' + lend);
+          console.log('  je %s', lend);
           gen(node.caseTrue);
           console.log(lend + ':');
         }
@@ -106,9 +127,9 @@ export function generateCode(nodes: AstNode[]) {
         gen(node.cond);
         console.log('  pop rax');
         console.log('  cmp rax, 0');
-        console.log('  je ' + lend);
+        console.log('  je %s', lend);
         gen(node.whileTrue);
-        console.log('  jmp ' + lbegin);
+        console.log('  jmp %s', lbegin);
         console.log(lend + ':');
         return;
       }
@@ -123,13 +144,13 @@ export function generateCode(nodes: AstNode[]) {
           gen(node.cond);
           console.log('  pop rax');
           console.log('  cmp rax, 0');
-          console.log('  je ' + lend);
+          console.log('  je %s', lend);
         }
         gen(node.whileTrue);
         if (node.after) {
           gen(node.after);
         }
-        console.log('  jmp ' + lbegin);
+        console.log('  jmp %s', lbegin);
         console.log(lend + ':');
         return;
       }

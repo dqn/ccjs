@@ -10,6 +10,7 @@ export type AstNode =
   | {
       kind: 'func';
       label: string;
+      args: AstNode[];
       stmts: AstNode[];
     }
   | {
@@ -45,6 +46,7 @@ export type AstNode =
   | {
       kind: 'call';
       label: string;
+      args: AstNode[];
     }
   | {
       kind: 'lvar';
@@ -60,7 +62,7 @@ type LVar = {
 };
 
 // program    = func*
-// func       = ident "(" ")" "{" stmt* "}"
+// func       = ident "(" (ident ("," ident)*)? ")" "{" stmt* "}"
 // stmt       = expr ";"
 //              | "{" stmt* "}"
 //              | "return" expr ";"
@@ -74,7 +76,7 @@ type LVar = {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | ident ("(" ")")? | "(" expr ")"
+// primary    = num | ident ( "(" (primary ("," primary)*)? ")" )? | "(" expr ")"
 
 export function parse(tokens: Token[]): AstNode[] {
   const locals: LVar = {};
@@ -156,8 +158,18 @@ export function parse(tokens: Token[]): AstNode[] {
       tokens.shift();
 
       if (consume('(')) {
-        expect(')');
-        return { kind: 'call', label: str };
+        const args: AstNode[] = [];
+
+        while (!consume(')')) {
+          args.push(primary());
+
+          if (consume(',') && consume(')')) {
+            errorAt(tokens[0].pos - 1, 'expected primary');
+            process.exit(1);
+          }
+        }
+
+        return { kind: 'call', label: str, args };
       }
 
       if (!locals[str]) {
@@ -331,7 +343,33 @@ export function parse(tokens: Token[]): AstNode[] {
     tokens.shift();
 
     expect('(');
-    expect(')');
+
+    const args: AstNode[] = [];
+
+    while (!consume(')')) {
+      const token = tokens[0];
+
+      if (token.kind !== 'ident') {
+        errorAt(token.pos, 'expected ident');
+        process.exit(1);
+      }
+
+      const { str } = token;
+      tokens.shift();
+
+      if (!locals[str]) {
+        const offset = (Object.keys(locals).length + 1) * 8;
+        locals[str] = { offset };
+      }
+
+      args.push({ kind: 'lvar', offset: locals[str].offset });
+
+      if (consume(',') && tokens[0].kind !== 'ident') {
+        errorAt(tokens[0].pos, 'expected ident');
+        process.exit(1);
+      }
+    }
+
     expect('{');
 
     const stmts: AstNode[] = [];
@@ -339,7 +377,7 @@ export function parse(tokens: Token[]): AstNode[] {
       stmts.push(stmt());
     }
 
-    return { kind: 'func', label, stmts };
+    return { kind: 'func', label, args, stmts };
   };
 
   const program = (): AstNode[] => {

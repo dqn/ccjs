@@ -76,7 +76,7 @@ type LVar = {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | ident ( "(" (primary ("," primary)*)? ")" )? | "(" expr ")"
+// primary    = num | ident ( "(" (expr ("," expr)*)? ")" )? | "(" expr ")"
 
 export function parse(tokens: Token[]): AstNode[] {
   const locals: LVar = {};
@@ -161,7 +161,7 @@ export function parse(tokens: Token[]): AstNode[] {
         const args: AstNode[] = [];
 
         while (!consume(')')) {
-          args.push(primary());
+          args.push(expr());
 
           if (consume(',') && consume(')')) {
             errorAt(tokens[0].pos - 1, 'expected primary');

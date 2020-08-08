@@ -91,7 +91,7 @@ export function generateCode(nodes: AstNode[]) {
         return;
       }
       case 'return': {
-        gen(node.lhs);
+        gen(node.expr);
         console.log('  pop rax');
         console.log('  mov rsp, rbp');
         console.log('  pop rbp');

@@ -19,7 +19,7 @@ export type AstNode =
     }
   | {
       kind: 'return';
-      lhs: AstNode;
+      expr: AstNode;
     }
   | {
       kind: 'if';
@@ -277,7 +277,7 @@ export function parse(tokens: Token[]): AstNode[] {
     }
 
     if (consumeKind('return')) {
-      const node: AstNode = { kind: 'return', lhs: expr() };
+      const node: AstNode = { kind: 'return', expr: expr() };
       expect(';');
       return node;
     }

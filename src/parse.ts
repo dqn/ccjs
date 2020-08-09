@@ -88,12 +88,24 @@ type LVar = {
 export function parse(tokens: Token[]): AstNode[] {
   const locals: LVar = {};
 
-  const consume = (op: string): boolean => {
+  const nextToken = (): Token => {
     if (!tokens.length) {
       throw Error('there are no tokens');
     }
 
-    const token = tokens[0];
+    return tokens[0];
+  };
+
+  const shiftToken = (): Token => {
+    if (!tokens.length) {
+      throw Error('there are no tokens');
+    }
+
+    return tokens.shift()!;
+  };
+
+  const consume = (op: string): boolean => {
+    const token = nextToken();
 
     if (token.kind !== 'reserved' || token.str !== op) {
       return false;
@@ -104,12 +116,8 @@ export function parse(tokens: Token[]): AstNode[] {
     return true;
   };
 
-  const consumeKind = (kind: string): boolean => {
-    if (!tokens.length) {
-      throw Error('there are no tokens');
-    }
-
-    const token = tokens[0];
+  const consumeKind = (kind: Token['kind']): boolean => {
+    const token = nextToken();
 
     if (token.kind !== kind) {
       return false;
@@ -121,47 +129,19 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const expect = (op: string) => {
-    if (!tokens.length) {
-      throw Error('there are no tokens');
-    }
-
-    const token = tokens[0];
+    const token = shiftToken();
 
     if (token.kind !== 'reserved' || token.str !== op) {
       errorAt(token.pos, 'could not find %s', op);
     }
-
-    tokens.shift();
   };
 
-  const expectKind = (kind: string) => {
-    if (!tokens.length) {
-      throw Error('there are no tokens');
-    }
-
-    const token = tokens[0];
+  const expectKind = (kind: Token['kind']) => {
+    const token = shiftToken();
 
     if (token.kind !== kind) {
       errorAt(token.pos, 'expected %s', kind);
     }
-
-    tokens.shift();
-  };
-
-  const expectNumber = (): number => {
-    if (!tokens.length) {
-      throw Error('there are no tokens');
-    }
-
-    const token = tokens[0];
-
-    if (token.kind !== 'num') {
-      errorAt(token.pos, 'not a number');
-    }
-
-    tokens.shift();
-
-    return token.val;
   };
 
   const primary = (): AstNode => {
@@ -171,10 +151,9 @@ export function parse(tokens: Token[]): AstNode[] {
       return node;
     }
 
-    const token = tokens[0];
-    if (token.kind === 'ident') {
-      tokens.shift();
+    const token = shiftToken();
 
+    if (token.kind === 'ident') {
       if (consume('(')) {
         const args: AstNode[] = [];
 
@@ -199,7 +178,11 @@ export function parse(tokens: Token[]): AstNode[] {
       return { kind: 'lvar', offset: locals[token.str].offset };
     }
 
-    return { kind: 'num', val: expectNumber() };
+    if (token.kind === 'num') {
+      return { kind: 'num', val: token.val };
+    }
+
+    errorAt(token.pos, 'unexpected token %s', token.kind);
   };
 
   const unary = (): AstNode => {
@@ -353,13 +336,12 @@ export function parse(tokens: Token[]): AstNode[] {
     }
 
     if (consumeKind('int')) {
-      const token = tokens[0];
+      const token = shiftToken();
 
       if (token.kind !== 'ident') {
         errorAt(token.pos, 'expected ident');
       }
 
-      tokens.shift();
       expect(';');
 
       if (locals[token.str]) {
@@ -380,13 +362,12 @@ export function parse(tokens: Token[]): AstNode[] {
   const func = (): AstNode => {
     expectKind('int');
 
-    const token = tokens[0];
+    const token = shiftToken();
 
     if (token.kind !== 'ident') {
       errorAt(token.pos, 'expect ident');
     }
     const label = token.str;
-    tokens.shift();
 
     expect('(');
 
@@ -396,13 +377,11 @@ export function parse(tokens: Token[]): AstNode[] {
       while (true) {
         expectKind('int');
 
-        const token = tokens[0];
+        const token = shiftToken();
 
         if (token.kind !== 'ident') {
           errorAt(token.pos, 'expected ident');
         }
-
-        tokens.shift();
 
         if (!locals[token.str]) {
           const offset = (Object.keys(locals).length + 1) * 8;

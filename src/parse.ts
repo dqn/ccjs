@@ -128,20 +128,26 @@ export function parse(tokens: Token[]): AstNode[] {
     return true;
   };
 
-  const expect = (op: string) => {
+  const expect = (op: string): Token => {
     const token = shiftToken();
 
     if (token.kind !== 'reserved' || token.str !== op) {
       errorAt(token.pos, 'could not find %s', op);
     }
+
+    return token;
   };
 
-  const expectKind = (kind: Token['kind']) => {
+  const expectKind = <T extends Token['kind'], U extends Token = Extract<Token, { kind: T }>>(
+    kind: T,
+  ): U => {
     const token = shiftToken();
 
     if (token.kind !== kind) {
       errorAt(token.pos, 'expected %s', kind);
     }
+
+    return token as U;
   };
 
   const primary = (): AstNode => {
@@ -336,12 +342,7 @@ export function parse(tokens: Token[]): AstNode[] {
     }
 
     if (consumeKind('int')) {
-      const token = shiftToken();
-
-      if (token.kind !== 'ident') {
-        errorAt(token.pos, 'expected ident');
-      }
-
+      const token = expectKind('ident');
       expect(';');
 
       if (locals[token.str]) {
@@ -361,12 +362,7 @@ export function parse(tokens: Token[]): AstNode[] {
 
   const func = (): AstNode => {
     expectKind('int');
-
-    const token = shiftToken();
-
-    if (token.kind !== 'ident') {
-      errorAt(token.pos, 'expect ident');
-    }
+    const token = expectKind('ident');
     const label = token.str;
 
     expect('(');
@@ -376,12 +372,7 @@ export function parse(tokens: Token[]): AstNode[] {
     if (!consume(')')) {
       while (true) {
         expectKind('int');
-
-        const token = shiftToken();
-
-        if (token.kind !== 'ident') {
-          errorAt(token.pos, 'expected ident');
-        }
+        const token = expectKind('ident');
 
         if (!locals[token.str]) {
           const offset = (Object.keys(locals).length + 1) * 8;

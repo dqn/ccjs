@@ -135,6 +135,21 @@ export function parse(tokens: Token[]): AstNode[] {
     tokens.shift();
   };
 
+  const expectKind = (kind: string) => {
+    if (!tokens.length) {
+      throw Error('there are no tokens');
+    }
+
+    const token = tokens[0];
+
+    if (token.kind !== kind) {
+      errorAt(token.pos, 'expected %s', kind);
+      process.exit(1);
+    }
+
+    tokens.shift();
+  };
+
   const expectNumber = (): number => {
     if (!tokens.length) {
       throw Error('there are no tokens');
@@ -166,12 +181,14 @@ export function parse(tokens: Token[]): AstNode[] {
       if (consume('(')) {
         const args: AstNode[] = [];
 
-        while (!consume(')')) {
-          args.push(expr());
+        if (!consume(')')) {
+          while (true) {
+            args.push(expr());
 
-          if (consume(',') && consume(')')) {
-            errorAt(tokens[0].pos - 1, 'expected primary');
-            process.exit(1);
+            if (!consume(',')) {
+              expect(')');
+              break;
+            }
           }
         }
 
@@ -367,6 +384,8 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const func = (): AstNode => {
+    expectKind('int');
+
     const token = tokens[0];
 
     if (token.kind !== 'ident') {
@@ -380,26 +399,30 @@ export function parse(tokens: Token[]): AstNode[] {
 
     const args: AstNode[] = [];
 
-    while (!consume(')')) {
-      const token = tokens[0];
+    if (!consume(')')) {
+      while (true) {
+        expectKind('int');
 
-      if (token.kind !== 'ident') {
-        errorAt(token.pos, 'expected ident');
-        process.exit(1);
-      }
+        const token = tokens[0];
 
-      tokens.shift();
+        if (token.kind !== 'ident') {
+          errorAt(token.pos, 'expected ident');
+          process.exit(1);
+        }
 
-      if (!locals[token.str]) {
-        const offset = (Object.keys(locals).length + 1) * 8;
-        locals[token.str] = { offset };
-      }
+        tokens.shift();
 
-      args.push({ kind: 'lvar', offset: locals[token.str].offset });
+        if (!locals[token.str]) {
+          const offset = (Object.keys(locals).length + 1) * 8;
+          locals[token.str] = { offset };
+        }
 
-      if (consume(',') && tokens[0].kind !== 'ident') {
-        errorAt(tokens[0].pos, 'expected ident');
-        process.exit(1);
+        args.push({ kind: 'lvar', offset: locals[token.str].offset });
+
+        if (!consume(',')) {
+          expect(')');
+          break;
+        }
       }
     }
 

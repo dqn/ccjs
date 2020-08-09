@@ -44,8 +44,7 @@ export type AstNode =
       whileTrue: AstNode;
     }
   | {
-      kind: 'block';
-      stmts: AstNode[];
+      kind: 'int';
     }
   | {
       kind: 'call';
@@ -73,6 +72,7 @@ type LVar = {
 //              | "if" "(" expr ")" stmt ("else" stmt)?
 //              | "while" "(" expr ")" stmt
 //              | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//              | "int" ident ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -161,7 +161,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
     const token = tokens[0];
     if (token.kind === 'ident') {
-      const { str } = token;
       tokens.shift();
 
       if (consume('(')) {
@@ -176,15 +175,15 @@ export function parse(tokens: Token[]): AstNode[] {
           }
         }
 
-        return { kind: 'call', label: str, args };
+        return { kind: 'call', label: token.str, args };
       }
 
-      if (!locals[str]) {
-        const offset = (Object.keys(locals).length + 1) * 8;
-        locals[str] = { offset };
+      if (!locals[token.str]) {
+        errorAt(token.pos, 'undefined variable');
+        process.exit(1);
       }
 
-      return { kind: 'lvar', offset: locals[str].offset };
+      return { kind: 'lvar', offset: locals[token.str].offset };
     }
 
     return { kind: 'num', val: expectNumber() };
@@ -340,6 +339,28 @@ export function parse(tokens: Token[]): AstNode[] {
       return node;
     }
 
+    if (consumeKind('int')) {
+      const token = tokens[0];
+
+      if (token.kind !== 'ident') {
+        errorAt(token.pos, 'expected ident');
+        process.exit(1);
+      }
+
+      tokens.shift();
+      expect(';');
+
+      if (locals[token.str]) {
+        errorAt(token.pos, 'duplicate definitions');
+        process.exit(1);
+      }
+
+      const offset = (Object.keys(locals).length + 1) * 8;
+      locals[token.str] = { offset };
+
+      return { kind: 'int' };
+    }
+
     const node = expr();
     expect(';');
     return node;
@@ -367,15 +388,14 @@ export function parse(tokens: Token[]): AstNode[] {
         process.exit(1);
       }
 
-      const { str } = token;
       tokens.shift();
 
-      if (!locals[str]) {
+      if (!locals[token.str]) {
         const offset = (Object.keys(locals).length + 1) * 8;
-        locals[str] = { offset };
+        locals[token.str] = { offset };
       }
 
-      args.push({ kind: 'lvar', offset: locals[str].offset });
+      args.push({ kind: 'lvar', offset: locals[token.str].offset });
 
       if (consume(',') && tokens[0].kind !== 'ident') {
         errorAt(tokens[0].pos, 'expected ident');

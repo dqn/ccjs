@@ -165,6 +165,9 @@ export function generateCode(nodes: AstNode[]) {
         console.log(lend + ':');
         return;
       }
+      case 'int': {
+        return;
+      }
     }
 
     gen(node.lhs);

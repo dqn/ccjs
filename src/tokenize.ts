@@ -36,6 +36,10 @@ export type Token =
       pos: number;
     }
   | {
+      kind: 'int';
+      pos: number;
+    }
+  | {
       kind: 'num';
       pos: number;
       val: number;
@@ -108,6 +112,11 @@ export function tokenize(src: string): Token[] {
 
     if (consume('for')) {
       tokens.push({ kind: 'for', pos });
+      continue;
+    }
+
+    if (consume('int')) {
+      tokens.push({ kind: 'int', pos });
       continue;
     }
 

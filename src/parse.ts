@@ -129,7 +129,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
     if (token.kind !== 'reserved' || token.str !== op) {
       errorAt(token.pos, 'could not find %s', op);
-      process.exit(1);
     }
 
     tokens.shift();
@@ -144,7 +143,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
     if (token.kind !== kind) {
       errorAt(token.pos, 'expected %s', kind);
-      process.exit(1);
     }
 
     tokens.shift();
@@ -159,7 +157,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
     if (token.kind !== 'num') {
       errorAt(token.pos, 'not a number');
-      process.exit(1);
     }
 
     tokens.shift();
@@ -197,7 +194,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
       if (!locals[token.str]) {
         errorAt(token.pos, 'undefined variable');
-        process.exit(1);
       }
 
       return { kind: 'lvar', offset: locals[token.str].offset };
@@ -361,7 +357,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
       if (token.kind !== 'ident') {
         errorAt(token.pos, 'expected ident');
-        process.exit(1);
       }
 
       tokens.shift();
@@ -369,7 +364,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
       if (locals[token.str]) {
         errorAt(token.pos, 'duplicate definitions');
-        process.exit(1);
       }
 
       const offset = (Object.keys(locals).length + 1) * 8;
@@ -390,7 +384,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
     if (token.kind !== 'ident') {
       errorAt(token.pos, 'expect ident');
-      process.exit(1);
     }
     const label = token.str;
     tokens.shift();
@@ -407,7 +400,6 @@ export function parse(tokens: Token[]): AstNode[] {
 
         if (token.kind !== 'ident') {
           errorAt(token.pos, 'expected ident');
-          process.exit(1);
         }
 
         tokens.shift();

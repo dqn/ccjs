@@ -140,7 +140,6 @@ export function tokenize(src: string): Token[] {
     }
 
     errorAt(pos, 'failed to tokenize');
-    process.exit(1);
   }
 
   tokens.push({ kind: 'eof', pos: -1 });

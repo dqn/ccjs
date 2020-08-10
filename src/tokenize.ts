@@ -1,5 +1,7 @@
 import { errorAt } from './error';
 
+export type TypeName = 'int';
+
 export type Token =
   | {
       kind: 'eof';
@@ -36,7 +38,8 @@ export type Token =
       pos: number;
     }
   | {
-      kind: 'int';
+      kind: 'type';
+      name: TypeName;
       pos: number;
     }
   | {
@@ -116,7 +119,7 @@ export function tokenize(src: string): Token[] {
     }
 
     if (consume('int')) {
-      tokens.push({ kind: 'int', pos });
+      tokens.push({ kind: 'type', name: 'int', pos });
       continue;
     }
 

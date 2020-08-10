@@ -40,7 +40,7 @@ export function generateCode(nodes: AstNode[]) {
         return;
       }
       case 'assign': {
-        genLval(node.lhs);
+        gen(node.lhs);
         gen(node.rhs);
 
         console.log('  pop rdi');
@@ -163,9 +163,6 @@ export function generateCode(nodes: AstNode[]) {
         }
         console.log('  jmp %s', lbegin);
         console.log(lend + ':');
-        return;
-      }
-      case 'int': {
         return;
       }
     }

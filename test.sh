@@ -56,6 +56,7 @@ assert 42 'int calc(int x,int y,int z) { return x + y * z;} int main() {return c
 assert 55 'int fibo(int x) { if (x < 2) { return x; } return fibo(x - 1) + fibo(x - 2); } int main() { return fibo(10); }'
 assert 10 'int main() { int a;a = 10; return *&a; }'
 assert 2 'int main() { int a;int b;a = 1; b = 2; return *(&a - 8); }'
+assert 3 'int main() { int x; int *y; y = &x; *y = 3; return x; }'
 
 echo OK
 

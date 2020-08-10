@@ -1,5 +1,7 @@
 import { errorAt } from './error';
-import { Token } from './tokenize';
+import { Token, TypeName } from './tokenize';
+
+type VarType = { name: TypeName; ptr: number };
 
 export type AstNode =
   | {
@@ -44,9 +46,6 @@ export type AstNode =
       whileTrue: AstNode;
     }
   | {
-      kind: 'int';
-    }
-  | {
       kind: 'call';
       label: string;
       args: AstNode[];
@@ -61,18 +60,18 @@ export type AstNode =
     };
 
 type LVar = {
-  [name: string]: { offset: number };
+  [name: string]: { type: VarType; offset: number };
 };
 
 // program    = func*
-// func       = ident "(" (ident ("," ident)*)? ")" "{" stmt* "}"
+// func       = ident "(" (type "*"* ident ("," type "*"* ident)*)? ")" "{" stmt* "}"
 // stmt       = expr ";"
 //              | "{" stmt* "}"
 //              | "return" expr ";"
 //              | "if" "(" expr ")" stmt ("else" stmt)?
 //              | "while" "(" expr ")" stmt
 //              | "for" "(" expr? ";" expr? ";" expr? ")" stmt
-//              | "int" ident ";"
+//              | type "*"* ident ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -81,7 +80,7 @@ type LVar = {
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = "+"? primary
 //              | "-"? primary
-//              | "*" unary
+//              | "*"* unary
 //              | "&" unary
 // primary    = num | ident ( "(" (expr ("," expr)*)? ")" )? | "(" expr ")"
 
@@ -138,16 +137,14 @@ export function parse(tokens: Token[]): AstNode[] {
     return token;
   };
 
-  const expectKind = <T extends Token['kind'], U extends Token = Extract<Token, { kind: T }>>(
-    kind: T,
-  ): U => {
+  const expectKind = <T extends Token['kind']>(kind: T): Extract<Token, { kind: T }> => {
     const token = shiftToken();
 
     if (token.kind !== kind) {
       errorAt(token.pos, 'expected %s', kind);
     }
 
-    return token as U;
+    return token as Extract<Token, { kind: T }>;
   };
 
   const primary = (): AstNode => {
@@ -341,18 +338,21 @@ export function parse(tokens: Token[]): AstNode[] {
       return node;
     }
 
-    if (consumeKind('int')) {
-      const token = expectKind('ident');
+    if (nextToken().kind === 'type') {
+      const { name: typeName } = expectKind('type');
+      let ptr = 0;
+      while (consume('*')) ptr++;
+      const { str: varName, pos } = expectKind('ident');
       expect(';');
 
-      if (locals[token.str]) {
-        errorAt(token.pos, 'duplicate definitions');
+      if (locals[varName]) {
+        errorAt(pos, 'duplicate definitions');
       }
 
       const offset = (Object.keys(locals).length + 1) * 8;
-      locals[token.str] = { offset };
+      locals[varName] = { offset, type: { name: typeName, ptr } };
 
-      return { kind: 'int' };
+      return { kind: 'num', val: 0 };
     }
 
     const node = expr();
@@ -361,25 +361,27 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const func = (): AstNode => {
-    expectKind('int');
-    const token = expectKind('ident');
-    const label = token.str;
-
+    expectKind('type');
+    let ptr = 0;
+    while (consume('*')) ptr++;
+    const { str: label } = expectKind('ident');
     expect('(');
 
     const args: AstNode[] = [];
 
     if (!consume(')')) {
       while (true) {
-        expectKind('int');
-        const token = expectKind('ident');
+        const { name: typeName } = expectKind('type');
+        let ptr = 0;
+        while (consume('*')) ptr++;
+        const { str: varName } = expectKind('ident');
 
-        if (!locals[token.str]) {
+        if (!locals[varName]) {
           const offset = (Object.keys(locals).length + 1) * 8;
-          locals[token.str] = { offset };
+          locals[varName] = { offset, type: { name: typeName, ptr } };
         }
 
-        args.push({ kind: 'lvar', offset: locals[token.str].offset });
+        args.push({ kind: 'lvar', offset: locals[varName].offset });
 
         if (!consume(',')) {
           expect(')');
@@ -400,7 +402,7 @@ export function parse(tokens: Token[]): AstNode[] {
 
   const program = (): AstNode[] => {
     const nodes: AstNode[] = [];
-    while (tokens[0].kind !== 'eof') {
+    while (nextToken().kind !== 'eof') {
       nodes.push(func());
     }
     return nodes;

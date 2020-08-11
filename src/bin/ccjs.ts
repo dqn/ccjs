@@ -23,12 +23,12 @@ const cli = meow(
 
 if (cli.input.length === 1 && cli.input[0]) {
   const src = fs.readFileSync(cli.input[0]);
-  compile(src);
+  console.log(compile(src));
   process.exit(0);
 }
 
 if (cli.flags.cmd) {
-  compile(cli.flags.cmd);
+  console.log(compile(cli.flags.cmd));
   process.exit(0);
 }
 

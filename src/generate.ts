@@ -1,3 +1,5 @@
+import { format } from 'util';
+
 import { AstNode } from './parse';
 
 function argRegisters(i: number): string {
@@ -9,25 +11,30 @@ function argRegisters(i: number): string {
   return registers[i];
 }
 
-export function generateCode(nodes: AstNode[]) {
+export function generateCode(nodes: AstNode[]): string {
   const newLabel = ((): ((str: string) => string) => {
     let labelCount = 0;
     return (str) => str + labelCount++;
   })();
 
+  const codes: string[] = [];
+  const emmit = (fmt: string, ...params: any[]) => {
+    codes.push(format(fmt, ...params));
+  };
+
   const genLval = (node: AstNode) => {
     switch (node.kind) {
       case 'deref': {
         genLval(node.operand);
-        console.log('  pop rax');
-        console.log('  mov rax, [rax]');
-        console.log('  push rax');
+        emmit('  pop rax');
+        emmit('  mov rax, [rax]');
+        emmit('  push rax');
         return;
       }
       case 'lvar': {
-        console.log('  mov rax, rbp');
-        console.log('  sub rax, %d', node.offset);
-        console.log('  push rax');
+        emmit('  mov rax, rbp');
+        emmit('  sub rax, %d', node.offset);
+        emmit('  push rax');
         return;
       }
     }
@@ -39,31 +46,31 @@ export function generateCode(nodes: AstNode[]) {
   const gen = (node: AstNode) => {
     switch (node.kind) {
       case 'num': {
-        console.log('  push %d', node.val);
+        emmit('  push %d', node.val);
         return;
       }
       case 'lvar': {
         genLval(node);
-        console.log('  pop rax');
-        console.log('  mov rax, [rax]');
-        console.log('  push rax');
+        emmit('  pop rax');
+        emmit('  mov rax, [rax]');
+        emmit('  push rax');
         return;
       }
       case 'assign': {
         genLval(node.lhs);
         gen(node.rhs);
 
-        console.log('  pop rdi');
-        console.log('  pop rax');
-        console.log('  mov [rax], rdi');
-        console.log('  push rdi');
+        emmit('  pop rdi');
+        emmit('  pop rax');
+        emmit('  mov [rax], rdi');
+        emmit('  push rdi');
         return;
       }
       case 'deref': {
         gen(node.operand);
-        console.log('  pop rax');
-        console.log('  mov rax, [rax]');
-        console.log('  push rax');
+        emmit('  pop rax');
+        emmit('  mov rax, [rax]');
+        emmit('  push rax');
         return;
       }
       case 'addr': {
@@ -73,85 +80,85 @@ export function generateCode(nodes: AstNode[]) {
       case 'call': {
         node.args.forEach((arg, i) => {
           gen(arg);
-          console.log('  pop rax');
-          console.log('  mov %s, rax', argRegisters(i));
+          emmit('  pop rax');
+          emmit('  mov %s, rax', argRegisters(i));
         });
 
-        console.log('  call %s', node.label);
-        console.log('  push rax');
+        emmit('  call %s', node.label);
+        emmit('  push rax');
         return;
       }
       case 'func': {
         // allocate space for 26 variables.
-        console.log(node.label + ':');
-        console.log('  push rbp');
-        console.log('  mov rbp, rsp');
-        console.log('  sub rsp, 208');
+        emmit(node.label + ':');
+        emmit('  push rbp');
+        emmit('  mov rbp, rsp');
+        emmit('  sub rsp, 208');
 
         node.args.forEach((arg, i) => {
           genLval(arg);
-          console.log('  pop rax');
-          console.log('  mov [rax], %s', argRegisters(i));
+          emmit('  pop rax');
+          emmit('  mov [rax], %s', argRegisters(i));
         });
 
         node.stmts.forEach((stmt) => {
           gen(stmt);
-          console.log('  pop rax');
+          emmit('  pop rax');
         });
 
-        console.log('  mov rsp, rbp');
-        console.log('  pop rbp');
-        console.log('  ret');
+        emmit('  mov rsp, rbp');
+        emmit('  pop rbp');
+        emmit('  ret');
         return;
       }
       case 'block': {
         node.stmts.forEach((stmt) => {
           gen(stmt);
-          console.log('  pop rax');
+          emmit('  pop rax');
         });
         return;
       }
       case 'return': {
         gen(node.expr);
-        console.log('  pop rax');
-        console.log('  mov rsp, rbp');
-        console.log('  pop rbp');
-        console.log('  ret');
+        emmit('  pop rax');
+        emmit('  mov rsp, rbp');
+        emmit('  pop rbp');
+        emmit('  ret');
         return;
       }
       case 'if': {
         gen(node.cond);
-        console.log('  pop rax');
-        console.log('  cmp rax, 0');
+        emmit('  pop rax');
+        emmit('  cmp rax, 0');
 
         if (node.caseFalse) {
           const lelse = newLabel('.Lelse');
           const lend = newLabel('.Lend');
-          console.log('  je %s', lelse);
+          emmit('  je %s', lelse);
           gen(node.caseTrue);
-          console.log('  jmp %s', lend);
-          console.log(lelse + ':');
+          emmit('  jmp %s', lend);
+          emmit(lelse + ':');
           gen(node.caseFalse);
-          console.log(lend + ':');
+          emmit(lend + ':');
         } else {
           const lend = newLabel('.Lend');
-          console.log('  je %s', lend);
+          emmit('  je %s', lend);
           gen(node.caseTrue);
-          console.log(lend + ':');
+          emmit(lend + ':');
         }
         return;
       }
       case 'while': {
         const lbegin = newLabel('Lbegin');
         const lend = newLabel('Lend');
-        console.log(lbegin + ':');
+        emmit(lbegin + ':');
         gen(node.cond);
-        console.log('  pop rax');
-        console.log('  cmp rax, 0');
-        console.log('  je %s', lend);
+        emmit('  pop rax');
+        emmit('  cmp rax, 0');
+        emmit('  je %s', lend);
         gen(node.whileTrue);
-        console.log('  jmp %s', lbegin);
-        console.log(lend + ':');
+        emmit('  jmp %s', lbegin);
+        emmit(lend + ':');
         return;
       }
       case 'for': {
@@ -160,19 +167,19 @@ export function generateCode(nodes: AstNode[]) {
         if (node.init) {
           gen(node.init);
         }
-        console.log(lbegin + ':');
+        emmit(lbegin + ':');
         if (node.cond) {
           gen(node.cond);
-          console.log('  pop rax');
-          console.log('  cmp rax, 0');
-          console.log('  je %s', lend);
+          emmit('  pop rax');
+          emmit('  cmp rax, 0');
+          emmit('  je %s', lend);
         }
         gen(node.whileTrue);
         if (node.after) {
           gen(node.after);
         }
-        console.log('  jmp %s', lbegin);
-        console.log(lend + ':');
+        emmit('  jmp %s', lbegin);
+        emmit(lend + ':');
         return;
       }
     }
@@ -180,49 +187,49 @@ export function generateCode(nodes: AstNode[]) {
     gen(node.lhs);
     gen(node.rhs);
 
-    console.log('  pop rdi');
-    console.log('  pop rax');
+    emmit('  pop rdi');
+    emmit('  pop rax');
 
     switch (node.kind) {
       case 'add': {
-        console.log('  add rax, rdi');
+        emmit('  add rax, rdi');
         break;
       }
       case 'sub': {
-        console.log('  sub rax, rdi');
+        emmit('  sub rax, rdi');
         break;
       }
       case 'mul': {
-        console.log('  imul rax, rdi');
+        emmit('  imul rax, rdi');
         break;
       }
       case 'div': {
-        console.log('  cqo');
-        console.log('  idiv rdi');
+        emmit('  cqo');
+        emmit('  idiv rdi');
         break;
       }
       case 'equ': {
-        console.log('  cmp rax, rdi');
-        console.log('  sete al');
-        console.log('  movzb rax, al');
+        emmit('  cmp rax, rdi');
+        emmit('  sete al');
+        emmit('  movzb rax, al');
         break;
       }
       case 'neq': {
-        console.log('  cmp rax, rdi');
-        console.log('  setne al');
-        console.log('  movzb rax, al');
+        emmit('  cmp rax, rdi');
+        emmit('  setne al');
+        emmit('  movzb rax, al');
         break;
       }
       case 'lss': {
-        console.log('  cmp rax, rdi');
-        console.log('  setl al');
-        console.log('  movzb rax, al');
+        emmit('  cmp rax, rdi');
+        emmit('  setl al');
+        emmit('  movzb rax, al');
         break;
       }
       case 'leq': {
-        console.log('  cmp rax, rdi');
-        console.log('  setle al');
-        console.log('  movzb rax, al');
+        emmit('  cmp rax, rdi');
+        emmit('  setle al');
+        emmit('  movzb rax, al');
         break;
       }
       default: {
@@ -231,13 +238,15 @@ export function generateCode(nodes: AstNode[]) {
       }
     }
 
-    console.log('  push rax');
+    emmit('  push rax');
   };
 
-  console.log('.intel_syntax noprefix');
-  console.log('.globl main');
+  emmit('.intel_syntax noprefix');
+  emmit('.globl main');
 
   nodes.forEach((node) => {
     gen(node);
   });
+
+  return codes.join('\n');
 }

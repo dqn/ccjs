@@ -361,6 +361,10 @@ export function parse(tokens: Token[]): AstNode[] {
   };
 
   const func = (): AstNode => {
+    Object.keys(locals).forEach((key) => {
+      delete locals[key];
+    });
+
     expectKind('type');
     let ptr = 0;
     while (consume('*')) ptr++;

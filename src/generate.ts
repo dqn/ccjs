@@ -16,14 +16,24 @@ export function generateCode(nodes: AstNode[]) {
   })();
 
   const genLval = (node: AstNode) => {
-    if (node.kind !== 'lvar') {
-      console.error('not local variable');
-      process.exit(1);
+    switch (node.kind) {
+      case 'deref': {
+        genLval(node.operand);
+        console.log('  pop rax');
+        console.log('  mov rax, [rax]');
+        console.log('  push rax');
+        return;
+      }
+      case 'lvar': {
+        console.log('  mov rax, rbp');
+        console.log('  sub rax, %d', node.offset);
+        console.log('  push rax');
+        return;
+      }
     }
 
-    console.log('  mov rax, rbp');
-    console.log('  sub rax, %d', node.offset);
-    console.log('  push rax');
+    console.error('not local variable');
+    process.exit(1);
   };
 
   const gen = (node: AstNode) => {
@@ -40,7 +50,7 @@ export function generateCode(nodes: AstNode[]) {
         return;
       }
       case 'assign': {
-        gen(node.lhs);
+        genLval(node.lhs);
         gen(node.rhs);
 
         console.log('  pop rdi');

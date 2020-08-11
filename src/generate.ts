@@ -248,5 +248,7 @@ export function generateCode(nodes: AstNode[]): string {
     gen(node);
   });
 
+  codes.push('');
+
   return codes.join('\n');
 }

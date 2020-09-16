@@ -2,17 +2,9 @@
 
 [![build status](https://github.com/dqn/ccjs/workflows/build/badge.svg)](https://github.com/dqn/ccjs/actions)
 
-[WIP] The C Compiler written in Node.js + TypeScript.
+Toy C Compiler written in Node.js.
 
 ccjs supports x86-64 Linux only.
-
-## Installation
-
-[WIP]
-
-```bash
-$ npm install ccjs
-```
 
 ## Example
 
